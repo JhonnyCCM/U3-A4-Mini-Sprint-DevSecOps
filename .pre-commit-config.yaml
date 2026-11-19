@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: detect-secrets
+        name: Detect secrets (Shift-Left)
+        entry: detect-secrets-hook
+        language: system
+        args: ['--baseline', '.secrets.baseline']
+        exclude: package-lock\.json|sbom\.json

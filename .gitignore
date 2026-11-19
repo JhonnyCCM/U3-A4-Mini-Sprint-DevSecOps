@@ -1,0 +1,16 @@
+# Entornos virtuales y Python
+.venv/
+.venv*/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Base de datos local de demostración y variables de entorno reales
+practica.db
+*.db
+.env
+.env.local
+
+# Reportes temporales
+*.log
