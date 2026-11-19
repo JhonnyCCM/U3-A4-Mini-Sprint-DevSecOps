@@ -1,0 +1,58 @@
+name: DevSecOps Build Breaker Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  security-gates:
+    name: SAST (Bandit) & SCA (pip-audit)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install security audit tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit pip-audit
+
+      - name: Run SAST Analysis (Bandit)
+        id: bandit_sast
+        run: |
+          if [ -f "app.py" ]; then
+            echo "Ejecutando análisis estático SAST sobre app.py..."
+            bandit -r app.py -f txt
+          else
+            echo "Sin código fuente app.py en rama base."
+          fi
+
+      - name: Run SCA Dependency Audit (pip-audit)
+        id: pip_audit_sca
+        if: always()
+        run: |
+          if [ -f "requirements.txt" ]; then
+            echo "Ejecutando auditoría SCA sobre requirements.txt..."
+            pip-audit -r requirements.txt
+          else
+            echo "Sin manifiesto requirements.txt en rama base."
+          fi
+
+      - name: Evaluate Build Breaker Gate
+        if: always()
+        run: |
+          echo "Resultado SAST (Bandit): ${{ steps.bandit_sast.outcome }}"
+          echo "Resultado SCA (pip-audit): ${{ steps.pip_audit_sca.outcome }}"
+          if [ "${{ steps.bandit_sast.outcome }}" == "failure" ] || [ "${{ steps.pip_audit_sca.outcome }}" == "failure" ]; then
+            echo "BUILD BREAKER ACTIVADO: Se detectaron vulnerabilidades críticas de seguridad. Integración bloqueada."
+            exit 1
+          fi
+          echo "Todos los controles DevSecOps pasaron satisfactoriamente."
